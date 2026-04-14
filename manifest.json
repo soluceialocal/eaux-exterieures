@@ -1,0 +1,43 @@
+{
+  "name": "État des Eaux en Extérieur",
+  "short_name": "ÉtatEaux",
+  "description": "Surveillance de la stabilité des eaux extérieures — baignade, pêche, irrigation, écologie",
+  "start_url": "./surveillance_eaux_v4.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f6f8",
+  "theme_color": "#2563eb",
+  "lang": "fr",
+  "categories": ["utilities", "environment", "health"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Alertes actives",
+      "short_name": "Alertes",
+      "description": "Voir les stations en alerte",
+      "url": "./surveillance_eaux_v4.html?filter=alert",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Vue carte",
+      "short_name": "Carte",
+      "description": "Afficher la carte des stations",
+      "url": "./surveillance_eaux_v4.html?view=map",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

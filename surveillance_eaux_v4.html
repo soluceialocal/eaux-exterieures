@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>État des Eaux en Extérieur</title>
+
+<!-- ── PWA Meta ──────────────────────────────────────────────── -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ÉtatEaux">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+
+<!-- ── Libs ──────────────────────────────────────────────────── -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── RESET + BASE ───────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6f8; --surface:#fff; --border:#e2e6ea;
+  --text:#1a2332; --muted:#6b7a8d; --light:#f8fafc;
+  --stable:#1a9651; --stable-bg:#e8f5ee; --stable-bd:#a8d5b7;
+  --watch:#c47a00;  --watch-bg:#fff4e0;  --watch-bd:#f0c060;
+  --alert:#c0392b;  --alert-bg:#fdecea;  --alert-bd:#f1a099;
+  --blue:#2563eb;   --blue-bg:#eff6ff;   --blue-bd:#bfdbfe;
+  --radius:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+
+/* ── TOPBAR ─────────────────────────────────────────────────── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:300}
+.topbar-logo{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:-.3px;white-space:nowrap}
+.topbar-logo span{color:var(--blue)}
+.topbar-search{flex:1;max-width:280px;margin-left:8px;position:relative}
+.topbar-search input{width:100%;padding:7px 12px 7px 32px;border:1px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--light);color:var(--text);outline:none;transition:border-color .15s}
+.topbar-search input:focus{border-color:var(--blue);background:#fff}
+.topbar-search .ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.85rem;pointer-events:none}
+.topbar-date{font-size:.78rem;color:var(--muted);white-space:nowrap}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.73rem;font-weight:600}
+.pill-stable{background:var(--stable-bg);color:var(--stable)}
+.pill-watch{background:var(--watch-bg);color:var(--watch)}
+.pill-alert{background:var(--alert-bg);color:var(--alert)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.dot.pulse{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+
+/* ── SECONDARY BAR ──────────────────────────────────────────── */
+.secbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:0;position:sticky;top:56px;z-index:299}
+.filter-btn{background:none;border:none;border-bottom:3px solid transparent;padding:11px 15px;font-size:.8rem;font-weight:500;color:var(--muted);cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
+.filter-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+.filter-btn:hover:not(.active){color:var(--text)}
+.view-toggle{margin-left:auto;display:flex;gap:2px;background:var(--light);border:1px solid var(--border);border-radius:8px;padding:3px}
+.vt-btn{background:none;border:none;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
+.vt-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* ── ALERT BANNER ───────────────────────────────────────────── */
+.alert-banner{background:var(--alert-bg);border-bottom:1px solid var(--alert-bd);padding:9px 20px;font-size:.8rem;color:var(--alert);display:flex;align-items:center;gap:8px}
+.alert-banner strong{font-weight:700}
+.alert-banner.hidden{display:none}
+
+/* ── LIST VIEW ──────────────────────────────────────────────── */
+.main{max-width:1100px;margin:0 auto;padding:20px}
+.section-head{display:flex;align-items:center;gap:8px;margin:20px 0 12px;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.section-head::after{content:'';flex:1;height:1px;background:var(--border)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:4px}
+
+/* ── CARD ────────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:box-shadow .15s,border-color .15s,transform .1s;position:relative;overflow:hidden}
+.card:hover{box-shadow:0 4px 18px rgba(0,0,0,.09);transform:translateY(-1px)}
+.card.alert-card{border-left:4px solid var(--alert)}
+.card.watch-card{border-left:4px solid var(--watch)}
+.card.stable-card{border-left:4px solid var(--stable)}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:9px}
+.card-name{font-size:.9rem;font-weight:700;color:var(--text);line-height:1.3}
+.card-river{font-size:.72rem;color:var(--muted);margin-top:2px}
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0;margin-left:8px}
+.badge-stable{background:var(--stable-bg);color:var(--stable)}
+.badge-watch{background:var(--watch-bg);color:var(--watch)}
+.badge-alert{background:var(--alert-bg);color:var(--alert)}
+.card-signal{font-size:.79rem;color:var(--muted);line-height:1.5;margin-bottom:10px;min-height:34px}
+.card-signal .highlight{font-weight:600}
+.card-signal .highlight.up{color:var(--alert)}
+.card-signal .highlight.warn{color:var(--watch)}
+.card-signal .highlight.ok{color:var(--stable)}
+.card-spark{margin:6px 0 10px}
+.card-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px}
+.card-meta{font-size:.7rem;color:var(--muted)}
+.card-usage{font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--light);color:var(--muted);border:1px solid var(--border)}
+
+/* ── MAP VIEW ───────────────────────────────────────────────── */
+.map-view{display:none;height:calc(100vh - 112px);position:relative}
+.map-view.active{display:block}
+#map{height:100%;width:100%}
+.map-legend{position:absolute;bottom:24px;left:16px;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.75rem;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.map-legend-item{display:flex;align-items:center;gap:7px;padding:2px 0;color:var(--text)}
+.map-legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.map-popup-name{font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:3px}
+.map-popup-river{font-size:.75rem;color:var(--muted);margin-bottom:6px}
+.map-popup-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;font-size:.7rem;font-weight:700}
+.map-popup-btn{display:block;margin-top:8px;text-align:center;padding:6px 12px;background:var(--blue);color:#fff;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;border:none;width:100%}
+
+/* ── EMPTY STATE ─────────────────────────────────────────────── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state .ico{font-size:2.5rem;margin-bottom:12px}
+.empty-state p{font-size:.88rem}
+
+/* ── OVERLAY + PANEL ────────────────────────────────────────── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;backdrop-filter:blur(2px)}
+.overlay.open{display:block}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(500px,100vw);background:var(--surface);z-index:501;overflow:hidden;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.panel.open{transform:translateX(0)}
+.panel-header{padding:18px 20px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:10;flex-shrink:0}
+.panel-close{position:absolute;top:16px;right:16px;background:var(--light);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;color:var(--muted)}
+.panel-close:hover{background:var(--border)}
+.panel-title{font-size:1.05rem;font-weight:700;padding-right:40px;line-height:1.3}
+.panel-river{font-size:.78rem;color:var(--muted);margin-top:3px}
+.panel-status{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-update{font-size:.7rem;color:var(--muted);display:flex;align-items:center;gap:4px}
+
+/* Panel tabs */
+.panel-tabs{display:flex;background:var(--light);border-bottom:1px solid var(--border);flex-shrink:0}
+.ptab{flex:1;padding:10px;font-size:.78rem;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color .15s,border-color .15s}
+.ptab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--surface)}
+.panel-body{flex:1;overflow-y:auto;padding:18px}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* Info blocks */
+.info-block{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:13px}
+.info-block-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+.info-line{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:.81rem}
+.info-line:last-child{border-bottom:none}
+.info-label{color:var(--muted)}
+.info-value{font-weight:600}
+.info-value.up{color:var(--alert)}
+.info-value.warn{color:var(--watch)}
+.info-value.ok{color:var(--stable)}
+.chart-wrap{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:13px}
+.chart-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px}
+.advice-block{border-radius:10px;padding:13px;margin-bottom:13px;font-size:.81rem;line-height:1.6}
+.advice-alert{background:var(--alert-bg);border:1px solid var(--alert-bd)}
+.advice-watch{background:var(--watch-bg);border:1px solid var(--watch-bd)}
+.advice-stable{background:var(--stable-bg);border:1px solid var(--stable-bd)}
+.advice-title{font-weight:700;margin-bottom:5px;font-size:.81rem}
+.advice-alert .advice-title{color:var(--alert)}
+.advice-watch .advice-title{color:var(--watch)}
+.advice-stable .advice-title{color:var(--stable)}
+
+/* History dots */
+.history-dots{display:flex;gap:3px;margin-top:6px;flex-wrap:wrap}
+.h-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.h-dot.s{background:var(--stable);opacity:.7}
+.h-dot.w{background:var(--watch)}
+.h-dot.a{background:var(--alert)}
+.h-dot.n{background:var(--border)}
+
+/* Param chart grid */
+.param-charts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px}
+.param-chart-cell{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:11px}
+.param-chart-label{font-size:.7rem;font-weight:700;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+.param-chart-val{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px}
+.param-chart-val span{font-size:.72rem;font-weight:400;color:var(--muted);margin-left:4px}
+
+/* Tech section */
+.tech-section{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:13px;font-size:.78rem;color:var(--muted);font-family:monospace}
+.tech-section .info-block-title{font-family:var(--font-sans,-apple-system)}
+
+/* Responsive */
+@media(max-width:600px){
+  .main{padding:12px}
+  .topbar-date,.topbar-search{display:none}
+  .topbar-right .pill:not(:last-child){display:none}
+  .param-charts{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ────────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="topbar-logo" style="line-height:1.2;display:flex;flex-direction:column;justify-content:center">
+    <div>État des <span>Eaux</span></div>
+    <div style="font-size:.6rem;font-weight:500;color:var(--muted);letter-spacing:.3px;text-transform:uppercase">en Extérieur</div>
+  </div>
+  <div class="topbar-search">
+    <span class="ico">🔍</span>
+    <input type="text" id="searchInput" placeholder="Rechercher une station, rivière…" oninput="onSearch(this.value)">
+  </div>
+  <div class="topbar-date" id="topbarDate"></div>
+  <div class="topbar-right">
+    <div class="pill pill-alert" id="summAlert"><div class="dot pulse"></div><span id="nAlert">2</span> alerte</div>
+    <div class="pill pill-watch" id="summWatch"><div class="dot"></div><span id="nWatch">3</span> vigilance</div>
+    <div class="pill pill-stable"><div class="dot"></div><span id="nStable">8</span> stables</div>
+  </div>
+</div>
+
+<!-- ── SECONDARY BAR ─────────────────────────────────────────── -->
+<div class="secbar">
+  <button class="filter-btn active" onclick="filterBy('tous',this)">Tous les points</button>
+  <button class="filter-btn" onclick="filterBy('baignade',this)">🏊 Baignade</button>
+  <button class="filter-btn" onclick="filterBy('peche',this)">🎣 Pêche</button>
+  <button class="filter-btn" onclick="filterBy('irrigation',this)">🌾 Irrigation</button>
+  <button class="filter-btn" onclick="filterBy('ecologie',this)">🌿 Écologie</button>
+  <div class="view-toggle">
+    <button class="vt-btn active" id="btnList" onclick="setView('list')">≡ Liste</button>
+    <button class="vt-btn" id="btnMap" onclick="setView('map')">⬡ Carte</button>
+  </div>
+</div>
+
+<!-- ── ALERT BANNER ───────────────────────────────────────────── -->
+<div class="alert-banner" id="alertBanner">
+  <div class="dot pulse" style="background:var(--alert)"></div>
+  <strong>2 alertes actives</strong> — Castelgaillard (pH) · Les Cassagnères (Nitrates)
+</div>
+
+<!-- ── LIST VIEW ──────────────────────────────────────────────── -->
+<div class="main" id="listView"></div>
+
+<!-- ── MAP VIEW ──────────────────────────────────────────────── -->
+<div class="map-view" id="mapView">
+  <div id="map"></div>
+  <div class="map-legend">
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--alert)"></div>Alerte</div>
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--watch)"></div>Vigilance</div>
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--stable)"></div>Stable</div>
+  </div>
+</div>
+
+<!-- ── DETAIL PANEL ─────────────────────────────────────────── -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="panel-header">
+    <div class="panel-title" id="panelTitle"></div>
+    <div class="panel-river" id="panelRiver"></div>
+    <div class="panel-status" id="panelStatus"></div>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-tabs">
+    <button class="ptab active" onclick="switchTab('terrain',this)">Terrain</button>
+    <button class="ptab" onclick="switchTab('graphiques',this)">Graphiques</button>
+    <button class="ptab" onclick="switchTab('technique',this)">Technique</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// DONNÉES MOCK (calées sur sorties MTDC réelles)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STATIONS = [
+  // ── ALERTES
+  {
+    id:'s1', name:'Plage du Lac de Castelgaillard', river:'Lac de Castelgaillard — Garonne (31)',
+    dept:'31', type:'lac', usage:'baignade', coords:[43.35, 0.95],
+    status:'alert', lastUpdate:'Aujourd\'hui 08:15',
+    signal:'<span class="highlight up">pH en hausse accélérante depuis 18 jours</span> — profil cohérent avec un début de bloom algal',
+    jours_stable:312, jours_derive:18,
+    params:[
+      {label:'pH',         value:'8.9',    trend:'↑ +0.6 en 18j',  cls:'up'},
+      {label:'Température',value:'24°C',   trend:'normale saison',  cls:'ok'},
+      {label:'Transparence',value:'1.2 m', trend:'↓ en baisse',     cls:'warn'},
+    ],
+    advice:{cls:'alert', title:'⚠ Vérification recommandée',
+      text:'La vitesse d\'augmentation du pH sort du comportement habituel de ce lac pour la saison. Un contrôle visuel et une mesure de terrain sont recommandés avant la prochaine ouverture à la baignade.'},
+    history:'sssssssssssssssssswwwwaaa',
+    datasets:null,
+  },
+  {
+    id:'s2', name:'Prise d\'eau Les Cassagnères', river:'Lot — Villeneuve-sur-Lot (47)',
+    dept:'47', type:'riviere', usage:'irrigation', coords:[44.35, 0.71],
+    status:'alert', lastUpdate:'Aujourd\'hui 08:22',
+    signal:'<span class="highlight up">Nitrates en accélération forte</span> — dérive amorcée il y a 3 semaines, franchissement seuil probable dans 4–6 semaines',
+    jours_stable:247, jours_derive:21,
+    params:[
+      {label:'Nitrates',    value:'38 mg/L', trend:'↑ +12 mg/L en 3 sem.', cls:'up'},
+      {label:'Conductivité',value:'412 µS/cm',trend:'↑ légère hausse',      cls:'warn'},
+      {label:'Débit',       value:'85 m³/s', trend:'normal',                cls:'ok'},
+    ],
+    advice:{cls:'alert', title:'⚠ Surveiller la tendance',
+      text:'La vitesse d\'accumulation est inhabituelle pour cette période. Si la dérive continue, le seuil DCE bon état (50 mg/L) sera approché en fin de saison. Informer l\'animateur de bassin.'},
+    history:'sssssssssssssssssssssswwwaaa',
+    datasets:null,
+  },
+
+  // ── VIGILANCE
+  {
+    id:'s3', name:'Moulin de Belvèze — camping', river:'Célé — Figeac (46)',
+    dept:'46', type:'riviere', usage:'baignade', coords:[44.61, 2.03],
+    status:'watch', lastUpdate:'Hier 16:40',
+    signal:'<span class="highlight warn">Turbidité en légère hausse</span> depuis 9 jours — reste dans les normes mais sort du comportement habituel',
+    jours_stable:180, jours_derive:9,
+    params:[
+      {label:'Turbidité',value:'18 NTU', trend:'↑ +8 NTU en 9j',  cls:'warn'},
+      {label:'pH',       value:'7.8',   trend:'stable',           cls:'ok'},
+      {label:'Débit',    value:'12 m³/s',trend:'↑ légère hausse', cls:'ok'},
+    ],
+    advice:{cls:'watch', title:'Surveillance renforcée',
+      text:'La turbidité monte progressivement. Probablement lié à la hausse légère de débit. Aucune action requise — re-contrôler dans 7 jours.'},
+    history:'sssssssssssssssssssssssswww',
+    datasets:null,
+  },
+  {
+    id:'s4', name:'Station pompage Saint-Nicolas', river:'Dordogne — Bergerac (24)',
+    dept:'24', type:'riviere', usage:'irrigation', coords:[44.85, 0.48],
+    status:'watch', lastUpdate:'Hier 14:10',
+    signal:'<span class="highlight warn">Conductivité en progression lente</span> — dérive graduelle depuis 6 semaines, pas d\'accélération',
+    jours_stable:195, jours_derive:42,
+    params:[
+      {label:'Conductivité',value:'580 µS/cm',trend:'↑ +80 µS/cm en 6 sem.',cls:'warn'},
+      {label:'pH',          value:'7.6',      trend:'stable',                cls:'ok'},
+      {label:'Sulfates',    value:'64 mg/L',  trend:'↑ légère hausse',       cls:'warn'},
+    ],
+    advice:{cls:'watch', title:'À surveiller',
+      text:'La dérive est lente et régulière — pas d\'accélération détectée. Pas de risque immédiat pour l\'irrigation. Possible étiage précoce en amont.'},
+    history:'sssssssssssssssssswwwwwwwwww',
+    datasets:null,
+  },
+  {
+    id:'s5', name:'Secteur Estivareilles', river:'Allier — Vichy (03)',
+    dept:'03', type:'riviere', usage:'peche', coords:[46.12, 3.43],
+    status:'watch', lastUpdate:'Hier 12:05',
+    signal:'<span class="highlight warn">Température en hausse précoce</span> — 3 semaines en avance sur le calendrier habituel de ce tronçon',
+    jours_stable:220, jours_derive:14,
+    params:[
+      {label:'Température',value:'22.4°C', trend:'↑ +3.2°C en 2 sem.',cls:'warn'},
+      {label:'Oxygène',    value:'7.1 mg/L',trend:'↓ légère baisse',   cls:'warn'},
+      {label:'pH',         value:'8.1',    trend:'stable',             cls:'ok'},
+    ],
+    advice:{cls:'watch', title:'Impact potentiel sur les salmonidés',
+      text:'La température approche le seuil de stress pour les truites (>21°C). Si la tendance se maintient, restreindre la pêche aux heures fraîches et surveiller d\'éventuelles échouées.'},
+    history:'ssssssssssssssssssssssswwwwww',
+    datasets:null,
+  },
+
+  // ── STABLES
+  {
+    id:'s6', name:'Plage de Biscarrosse', river:'Lac de Biscarrosse (40)',
+    dept:'40', type:'lac', usage:'baignade', coords:[44.38,-1.17],
+    status:'stable', lastUpdate:'Il y a 2 jours',
+    signal:'<span class="highlight ok">Tous les paramètres dans la variabilité normale</span> — stable depuis 94 jours',
+    jours_stable:94, jours_derive:0,
+    params:[
+      {label:'pH',         value:'7.4', trend:'normal',cls:'ok'},
+      {label:'Turbidité',  value:'4 NTU',trend:'normal',cls:'ok'},
+      {label:'Température',value:'19°C',trend:'normal',cls:'ok'},
+    ],
+    advice:{cls:'stable',title:'Situation normale',text:'Aucune dérive détectée. Prochain contrôle automatique dans 30 jours.'},
+    history:'ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss',
+    datasets:null,
+  },
+  {
+    id:'s7', name:'Ripisylve du Ciron', river:'Ciron — Barsac (33)',
+    dept:'33', type:'riviere', usage:'ecologie', coords:[44.57,-0.33],
+    status:'stable', lastUpdate:'Il y a 3 jours',
+    signal:'<span class="highlight ok">Qualité constante</span> — saisonnalité normale depuis 2 ans',
+    jours_stable:730, jours_derive:0,
+    params:[
+      {label:'pH',     value:'6.9',    trend:'normal',cls:'ok'},
+      {label:'Nitrates',value:'3 mg/L',trend:'normal',cls:'ok'},
+      {label:'Oxygène',value:'9.2 mg/L',trend:'normal',cls:'ok'},
+    ],
+    advice:{cls:'stable',title:'Bon état écologique maintenu',text:'Qualité remarquable pour ce type de cours d\'eau. Aucune action requise.'},
+    history:'ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss',
+    datasets:null,
+  },
+  {
+    id:'s8', name:'Plan d\'eau de Carsac', river:'Dordogne — Carsac (24)',
+    dept:'24', type:'lac', usage:'peche', coords:[44.86, 1.28],
+    status:'stable', lastUpdate:'Hier 19:00',
+    signal:'<span class="highlight ok">Eau stable</span> — niveau d\'oxygène et pH normaux pour la saison',
+    jours_stable:56, jours_derive:0,
+    params:[
+      {label:'Oxygène',    value:'8.8 mg/L',trend:'normal',cls:'ok'},
+      {label:'pH',         value:'7.7',     trend:'normal',cls:'ok'},
+      {label:'Transparence',value:'2.8 m',  trend:'normal',cls:'ok'},
+    ],
+    advice:{cls:'stable',title:'Situation normale',text:'Conditions favorables pour la pêche.'},
+    history:'ssssssssssssssssssssssssssssssssssssssssssssssssssssssss',
+    datasets:null,
+  },
+  {
+    id:'s9', name:'Captage La Barthe', river:'Baïse — Condom (32)',
+    dept:'32', type:'riviere', usage:'irrigation', coords:[43.96, 0.37],
+    status:'stable', lastUpdate:'Il y a 2 jours',
+    signal:'<span class="highlight ok">Nitrates stables</span> — dans les valeurs habituelles pour ce secteur viticole',
+    jours_stable:78, jours_derive:0,
+    params:[
+      {label:'Nitrates',   value:'12 mg/L',  trend:'normal',cls:'ok'},
+      {label:'Conductivité',value:'390 µS/cm',trend:'normal',cls:'ok'},
+      {label:'pH',         value:'7.5',      trend:'normal',cls:'ok'},
+    ],
+    advice:{cls:'stable',title:'Situation normale',text:'Qualité d\'eau compatible avec l\'irrigation viticole.'},
+    history:'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss',
+    datasets:null,
+  },
+  {
+    id:'s10', name:'Base nautique Sainte-Foy', river:'Lot — Sainte-Foy (47)',
+    dept:'47', type:'riviere', usage:'baignade', coords:[44.50, 0.90],
+    status:'stable', lastUpdate:'Hier 09:30',
+    signal:'<span class="highlight ok">Tous paramètres normaux</span> — eau claire, pH équilibré',
+    jours_stable:112, jours_derive:0,
+    params:[
+      {label:'pH',         value:'7.6', trend:'normal',cls:'ok'},
+      {label:'Turbidité',  value:'6 NTU',trend:'normal',cls:'ok'},
+      {label:'Température',value:'21°C',trend:'normal',cls:'ok'},
+    ],
+    advice:{cls:'stable',title:'Situation normale',text:'Conditions normales. Aucune restriction.'},
+    history:'ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss',
+    datasets:null,
+  },
+  {
+    id:'s11', name:'Réserve ornithologique', river:'Garonne — Tonneins (47)',
+    dept:'47', type:'riviere', usage:'ecologie', coords:[44.39, 0.30],
+    status:'stable', lastUpdate:'Il y a 4 jours',
+    signal:'<span class="highlight ok">Qualité stable</span> — bonne diversité de macroinvertébrés',
+    jours_stable:185, jours_derive:0,
+    params:[
+      {label:'Oxygène',    value:'9.5 mg/L',trend:'normal',cls:'ok'},
+      {label:'Température',value:'16°C',    trend:'normal',cls:'ok'},
+      {label:'Nitrates',   value:'8 mg/L',  trend:'normal',cls:'ok'},
+    ],
+    advice:{cls:'stable',title:'Bon état écologique',text:'Qualité d\'eau favorable aux espèces d\'intérêt patrimonial.'},
+    history:'ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss',
+    datasets:null,
+  },
+  {
+    id:'s12', name:'Gravière de Monsempron', river:'Lot — Fumel (47)',
+    dept:'47', type:'lac', usage:'peche', coords:[44.49, 0.96],
+    status:'stable', lastUpdate:'Il y a 2 jours',
+    signal:'<span class="highlight ok">Équilibre maintenu</span> — pH et oxygène dans les plages normales',
+    jours_stable:63, jours_derive:0,
+    params:[
+      {label:'pH',         value:'7.3',     trend:'normal',cls:'ok'},
+      {label:'Oxygène',    value:'8.4 mg/L',trend:'normal',cls:'ok'},
+      {label:'Transparence',value:'3.1 m',  trend:'normal',cls:'ok'},
+    ],
+    advice:{cls:'stable',title:'Situation normale',text:'Conditions favorables.'},
+    history:'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss',
+    datasets:null,
+  },
+  {
+    id:'s13', name:'Canal de Saint-Martory', river:'Canal — Saint-Martory (31)',
+    dept:'31', type:'lac', usage:'irrigation', coords:[43.10, 0.89],
+    status:'stable', lastUpdate:'Il y a 3 jours',
+    signal:'<span class="highlight ok">Qualité constante</span> — eau du canal conforme aux usages agricoles',
+    jours_stable:210, jours_derive:0,
+    params:[
+      {label:'Conductivité',value:'340 µS/cm',trend:'normal',cls:'ok'},
+      {label:'Nitrates',    value:'7 mg/L',   trend:'normal',cls:'ok'},
+      {label:'pH',          value:'7.8',      trend:'normal',cls:'ok'},
+    ],
+    advice:{cls:'stable',title:'Situation normale',text:'Eau conforme pour l\'irrigation.'},
+    history:'ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss',
+    datasets:null,
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SYNTHETIC DATA
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildDataset(type, n) {
+  const dates = Array.from({length:n}, (_,i) => {
+    const d = new Date(2024,3,1); d.setDate(d.getDate()+i);
+    return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+  });
+  const base=10, noise=0.4, amp=2.5;
+  let signal, phis;
+  if(type==='stable'){
+    signal = dates.map((_,i)=>+(base+amp*Math.sin(2*Math.PI*i/90)+noise*(Math.random()-.5)*2).toFixed(2));
+    phis   = signal.map((_,i)=>+(1+.08*Math.sin(2*Math.PI*i/90)+.03*(Math.random()-.5)).toFixed(3));
+  } else if(type==='alert'){
+    signal = dates.map((_,i)=>{const s=base+amp*Math.sin(2*Math.PI*i/90)+noise*(Math.random()-.5)*2; return i<72?+s.toFixed(2):+(s+((i-72)/18)*4).toFixed(2);});
+    phis   = signal.map((_,i)=>{const p=1+.08*Math.sin(2*Math.PI*i/90)+.03*(Math.random()-.5); return i<70?+p.toFixed(3):+(p+(i-70)*0.012).toFixed(3);});
+  } else if(type==='alert-nitrate'){
+    signal = dates.map((_,i)=>+(18+i*0.22+noise*(Math.random()-.5)*3).toFixed(2));
+    phis   = dates.map((_,i)=>+(1+i*0.004+.03*(Math.random()-.5)).toFixed(3));
+  } else if(type==='watch'){
+    signal = dates.map((_,i)=>{const s=base+amp*Math.sin(2*Math.PI*i/90)+noise*(Math.random()-.5)*2; return i<80?+s.toFixed(2):+(s+(i-80)*0.4).toFixed(2);});
+    phis   = signal.map((_,i)=>{const p=1+.08*Math.sin(2*Math.PI*i/90)+.03*(Math.random()-.5); return i<78?+p.toFixed(3):+(p+(i-78)*0.004).toFixed(3);});
+  } else if(type==='watch-cond'){
+    signal = dates.map((_,i)=>+(500+i*0.8+noise*(Math.random()-.5)*4).toFixed(2));
+    phis   = dates.map((_,i)=>+(1+i*0.002+.03*(Math.random()-.5)).toFixed(3));
+  } else if(type==='watch-temp'){
+    signal = dates.map((_,i)=>+(16+amp*Math.sin(2*Math.PI*i/90)+.3*(Math.random()-.5)*2+(i>76?i*.04:0)).toFixed(2));
+    phis   = dates.map((_,i)=>+(1+.08*Math.sin(2*Math.PI*i/90)+.03*(Math.random()-.5)+(i>74?(i-74)*0.005:0)).toFixed(3));
+  }
+  return {dates, signal, phis};
+}
+
+// Assign datasets on init
+const TYPES_MAP = {s1:'alert',s2:'alert-nitrate',s3:'watch',s4:'watch-cond',s5:'watch-temp'};
+STATIONS.forEach(s => {
+  s.datasets = buildDataset(TYPES_MAP[s.id]||'stable', 90);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPARKLINE SVG (inline, no lib)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function sparklineSVG(data, color, w=240, h=36) {
+  if(!data||!data.length) return '';
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max-min || 1;
+  const pts = data.map((v,i) => {
+    const x = (i/(data.length-1))*w;
+    const y = h - ((v-min)/range)*(h-4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:${h}px;display:block">
+    <polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" points="${pts}"/>
+  </svg>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+
+let currentFilter = 'tous';
+let searchQuery   = '';
+let currentView   = 'list';
+let chartInstances = {};
+let mapInstance    = null;
+let mapMarkers     = {};
+
+function getVisible() {
+  return STATIONS.filter(s => {
+    const matchFilter = currentFilter === 'tous' || s.usage === currentFilter;
+    const q = searchQuery.toLowerCase().trim();
+    const matchSearch = !q || s.name.toLowerCase().includes(q) || s.river.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER LIST
+// ─────────────────────────────────────────────────────────────────────────────
+
+const COLORS = {alert:'#c0392b', watch:'#c47a00', stable:'#1a9651'};
+
+function renderMain() {
+  const main = document.getElementById('listView');
+  const visible = getVisible();
+  const groups = [
+    {key:'alert',  label:'Alertes actives', cls:'alert-card'},
+    {key:'watch',  label:'Vigilance',        cls:'watch-card'},
+    {key:'stable', label:'Stables',          cls:'stable-card'},
+  ];
+
+  let html = '';
+  if(!visible.length) {
+    html = `<div class="empty-state"><div class="ico">💧</div><p>Aucune station ne correspond à votre recherche.</p></div>`;
+  } else {
+    groups.forEach(g => {
+      const filtered = visible.filter(s => s.status === g.key);
+      if(!filtered.length) return;
+      html += `<div class="section-head">${g.label} (${filtered.length})</div><div class="grid">`;
+      filtered.forEach(s => {
+        const badgeCls = {alert:'badge-alert',watch:'badge-watch',stable:'badge-stable'}[s.status];
+        const badgeTxt = {alert:'Alerte',watch:'Vigilance',stable:'Stable'}[s.status];
+        const sparkData = s.datasets ? s.datasets.signal.slice(-30) : [];
+        const sparkColor = COLORS[s.status];
+        const footMeta = s.status==='stable'
+          ? `Stable depuis ${s.jours_stable}j`
+          : `Dérive depuis ${s.jours_derive}j`;
+        html += `<div class="card ${g.cls}" onclick="openPanel('${s.id}')">
+          <div class="card-header">
+            <div>
+              <div class="card-name">${s.name}</div>
+              <div class="card-river">${s.river}</div>
+            </div>
+            <div class="status-badge ${badgeCls}">
+              <div class="dot${s.status==='alert'?' pulse':''}"></div>${badgeTxt}
+            </div>
+          </div>
+          <div class="card-signal">${s.signal}</div>
+          <div class="card-spark">${sparklineSVG(sparkData, sparkColor)}</div>
+          <div class="card-footer">
+            <div class="card-meta">${footMeta}</div>
+            <div class="card-usage">${{baignade:'🏊 Baignade',peche:'🎣 Pêche',irrigation:'🌾 Irrigation',ecologie:'🌿 Écologie'}[s.usage]}</div>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    });
+  }
+  main.innerHTML = html;
+
+  // Update counts
+  const vis = getVisible();
+  document.getElementById('nAlert').textContent  = vis.filter(s=>s.status==='alert').length;
+  document.getElementById('nWatch').textContent   = vis.filter(s=>s.status==='watch').length;
+  document.getElementById('nStable').textContent  = vis.filter(s=>s.status==='stable').length;
+
+  // Alert banner
+  const hasAlert = STATIONS.some(s=>s.status==='alert');
+  document.getElementById('alertBanner').classList.toggle('hidden', !hasAlert);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAP VIEW
+// ─────────────────────────────────────────────────────────────────────────────
+
+function initMap() {
+  if(mapInstance) return;
+  mapInstance = L.map('map').setView([44.6, 1.0], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap contributors',
+    maxZoom:18
+  }).addTo(mapInstance);
+  updateMapMarkers();
+}
+
+function updateMapMarkers() {
+  if(!mapInstance) return;
+  Object.values(mapMarkers).forEach(m => mapInstance.removeLayer(m));
+  mapMarkers = {};
+
+  const visible = getVisible();
+  visible.forEach(s => {
+    const color = COLORS[s.status];
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);${s.status==='alert'?'animation:pulse 1.8s infinite':''}"></div>`,
+      iconSize:[14,14],
+      iconAnchor:[7,7],
+    });
+    const badgeCls = {alert:'badge-alert',watch:'badge-watch',stable:'badge-stable'}[s.status];
+    const badgeTxt = {alert:'Alerte',watch:'Vigilance',stable:'Stable'}[s.status];
+    const popup = L.popup({maxWidth:220,closeButton:false}).setContent(`
+      <div style="font-family:-apple-system,sans-serif;padding:2px 0">
+        <div class="map-popup-name">${s.name}</div>
+        <div class="map-popup-river">${s.river}</div>
+        <span class="status-badge ${badgeCls}" style="font-size:.68rem"><div class="dot${s.status==='alert'?' pulse':''}"></div>${badgeTxt}</span>
+        <button class="map-popup-btn" onclick="openPanel('${s.id}')">Voir le détail →</button>
+      </div>`);
+    const marker = L.marker(s.coords, {icon}).addTo(mapInstance).bindPopup(popup);
+    mapMarkers[s.id] = marker;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEW TOGGLE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('listView').style.display  = v==='list' ? '' : 'none';
+  document.getElementById('mapView').classList.toggle('active', v==='map');
+  document.getElementById('btnList').classList.toggle('active', v==='list');
+  document.getElementById('btnMap').classList.toggle('active',  v==='map');
+  if(v==='map') { initMap(); setTimeout(()=>mapInstance.invalidateSize(),100); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILTER + SEARCH
+// ─────────────────────────────────────────────────────────────────────────────
+
+function filterBy(key, btn) {
+  currentFilter = key;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMain();
+  updateMapMarkers();
+}
+
+function onSearch(val) {
+  searchQuery = val;
+  renderMain();
+  updateMapMarkers();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DETAIL PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+
+let activePanelStation = null;
+let activeTab = 'terrain';
+
+function openPanel(id) {
+  const s = STATIONS.find(x=>x.id===id);
+  if(!s) return;
+  activePanelStation = s;
+  activeTab = 'terrain';
+
+  document.getElementById('panelTitle').textContent = s.name;
+  document.getElementById('panelRiver').textContent = s.river;
+
+  const badgeCls = {alert:'badge-alert',watch:'badge-watch',stable:'badge-stable'}[s.status];
+  const badgeTxt = {alert:'Alerte',watch:'Vigilance',stable:'Stable'}[s.status];
+  document.getElementById('panelStatus').innerHTML =
+    `<span class="status-badge ${badgeCls}"><div class="dot${s.status==='alert'?' pulse':''}"></div>${badgeTxt}</span>
+     <span class="panel-update">🕐 ${s.lastUpdate}</span>`;
+
+  // Reset tabs
+  document.querySelectorAll('.ptab').forEach((t,i)=>{
+    t.classList.toggle('active', i===0);
+  });
+
+  renderPanelTab('terrain', s);
+
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('panel').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function switchTab(tab, btn) {
+  activeTab = tab;
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  if(activePanelStation) renderPanelTab(tab, activePanelStation);
+}
+
+function renderPanelTab(tab, s) {
+  Object.values(chartInstances).forEach(c=>c.destroy());
+  chartInstances = {};
+  const body = document.getElementById('panelBody');
+
+  if(tab === 'terrain') {
+    const histDots = s.history.split('').map(c=>`<div class="h-dot ${c}"></div>`).join('');
+    const paramsHtml = s.params.map(p=>`
+      <div class="info-line">
+        <span class="info-label">${p.label}</span>
+        <span class="info-value ${p.cls}">${p.value} <span style="font-weight:400;font-size:.73rem;color:var(--muted)">${p.trend}</span></span>
+      </div>`).join('');
+    body.innerHTML = `
+      <div class="advice-block advice-${s.status}">
+        <div class="advice-title">${s.advice.title}</div>
+        ${s.advice.text}
+      </div>
+      <div class="info-block">
+        <div class="info-block-title">Dernières mesures</div>
+        ${paramsHtml}
+      </div>
+      <div class="info-block">
+        <div class="info-block-title">Historique d'état — chaque point = 1 jour</div>
+        <div class="history-dots">${histDots}</div>
+        <div style="display:flex;gap:12px;margin-top:8px;font-size:.7rem;color:var(--muted)">
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--stable);border-radius:2px;vertical-align:middle;margin-right:3px"></span>Stable</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--watch);border-radius:2px;vertical-align:middle;margin-right:3px"></span>Vigilance</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--alert);border-radius:2px;vertical-align:middle;margin-right:3px"></span>Alerte</span>
+        </div>
+      </div>`;
+
+  } else if(tab === 'graphiques') {
+    // Per-param sparklines + full signal + phis
+    const paramChartsHtml = s.params.map((p,i) => {
+      const dummyData = s.datasets ? s.datasets.signal.slice(-30).map(v => v + (Math.random()-.5)*0.4) : [];
+      return `<div class="param-chart-cell">
+        <div class="param-chart-label">${p.label}</div>
+        <div class="param-chart-val">${p.value} <span>${p.trend}</span></div>
+        ${sparklineSVG(dummyData, COLORS[s.status], 200, 40)}
+      </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div class="param-charts">${paramChartsHtml}</div>
+      <div class="chart-wrap">
+        <div class="chart-title">Signal principal — 90 derniers jours</div>
+        <canvas id="chartSignal" height="130"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Indice de dérive MTDC (Φ̃) — 90 jours</div>
+        <canvas id="chartPhis" height="90"></canvas>
+      </div>`;
+
+    setTimeout(() => {
+      const C = {muted:'#6b7a8d', border:'#e2e6ea'};
+      const lineColor = COLORS[s.status];
+      const alarmBg = {
+        id:'ab', beforeDraw(ch){
+          if(!s.datasets?.phis) return;
+          const {ctx,chartArea:{left,right,top,bottom},scales:{x}} = ch;
+          if(!x) return;
+          ctx.save();
+          s.datasets.phis.forEach((v,i)=>{
+            if(v>1.34){
+              const xPx=x.getPixelForValue(i), w=(right-left)/s.datasets.phis.length;
+              ctx.fillStyle = v>1.5?'rgba(192,57,43,0.12)':'rgba(196,122,0,0.08)';
+              ctx.fillRect(xPx-w/2,top,w,bottom-top);
+            }
+          }); ctx.restore();
+        }
+      };
+      const baseOpts = {
+        responsive:true, animation:false,
+        plugins:{legend:{display:false}, tooltip:{backgroundColor:'#fff',titleColor:'#1a2332',bodyColor:'#6b7a8d',borderColor:C.border,borderWidth:1}},
+        scales:{
+          x:{ticks:{color:C.muted,font:{size:9},maxTicksLimit:8,maxRotation:0},grid:{color:'#f0f2f4'}},
+          y:{ticks:{color:C.muted,font:{size:9}},grid:{color:'#f0f2f4'}}
+        }
+      };
+      chartInstances.signal = new Chart(document.getElementById('chartSignal'),{
+        type:'line', plugins:[alarmBg],
+        data:{labels:s.datasets.dates, datasets:[{label:'Signal',data:s.datasets.signal,borderColor:lineColor,borderWidth:1.5,pointRadius:0,tension:.3,fill:false}]},
+        options:baseOpts
+      });
+      chartInstances.phis = new Chart(document.getElementById('chartPhis'),{
+        type:'line',
+        data:{labels:s.datasets.dates, datasets:[
+          {label:'Φ̃',data:s.datasets.phis,borderColor:lineColor,borderWidth:1.5,pointRadius:0,tension:.3,fill:'origin',backgroundColor:lineColor+'18'},
+          {label:'Seuil',data:s.datasets.dates.map(()=>1.34),borderColor:'#ccc',borderWidth:1,borderDash:[4,2],pointRadius:0}
+        ]},
+        options:baseOpts
+      });
+    }, 50);
+
+  } else if(tab === 'technique') {
+    body.innerHTML = `
+      <div class="tech-section">
+        <div class="info-block-title" style="font-family:-apple-system,sans-serif;font-size:.7rem">Paramètres algorithme MTDC v3.3</div>
+        <div class="info-line"><span class="info-label">Algorithme</span><span class="info-value">MTDC v3.3 — Rs/Φ/Φ̃/G</span></div>
+        <div class="info-line"><span class="info-label">Type hydrologique</span><span class="info-value">${s.type}</span></div>
+        <div class="info-line"><span class="info-label">n_base (baseline)</span><span class="info-value">${{riviere:24,lac:6,ruisseau:12}[s.type]} mois</span></div>
+        <div class="info-line"><span class="info-label">phi1 (auto-calibré)</span><span class="info-value">~1.3465</span></div>
+        <div class="info-line"><span class="info-label">G_min (zone CS p75)</span><span class="info-value">~0.073628</span></div>
+        <div class="info-line"><span class="info-label">T (persistance alarm)</span><span class="info-value">${{riviere:3,lac:3,ruisseau:2}[s.type]} périodes</span></div>
+        <div class="info-line"><span class="info-label">Source données</span><span class="info-value">Hub'Eau / NAÏADES OFB</span></div>
+        <div class="info-line"><span class="info-label">Classification</span><span class="info-value">SANDRE / DCE</span></div>
+        <div class="info-line"><span class="info-label">FP rate (500 simul.)</span><span class="info-value">${{riviere:'0.0 %',lac:'0.0 %',ruisseau:'1.2 %'}[s.type]}</span></div>
+      </div>
+      <div style="margin-top:12px;padding:12px;background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:10px;font-size:.78rem;color:var(--blue);line-height:1.6">
+        <strong>Note :</strong> MTDC est un outil de détection précoce de dérive, complémentaire aux analyses DCE officielles.
+        Il détecte un changement d'état avant le franchissement de seuil réglementaire.
+      </div>`;
+  }
+}
+
+function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('panel').classList.remove('open');
+  document.body.style.overflow = '';
+  Object.values(chartInstances).forEach(c=>c.destroy());
+  chartInstances = {};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+
+const now = new Date();
+document.getElementById('topbarDate').textContent =
+  now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+renderMain();
+
+// ── PWA — Service Worker ─────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        console.log('[PWA] Service Worker enregistré :', reg.scope);
+        // Détection mise à jour disponible
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[PWA] Nouvelle version disponible — rechargez pour mettre à jour.');
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[PWA] Service Worker non enregistré :', err));
+  });
+}
+
+// ── PWA — état offline / online ─────────────────────────────────────────────
+function updateOnlineStatus() {
+  const banner = document.getElementById('alertBanner');
+  if (!navigator.onLine) {
+    const msg = document.getElementById('offlineMsg');
+    if (!msg) {
+      const div = document.createElement('div');
+      div.id = 'offlineMsg';
+      div.style.cssText = 'background:#fff4e0;border-bottom:1px solid #f0c060;padding:8px 20px;font-size:.78rem;color:#c47a00;display:flex;align-items:center;gap:8px';
+      div.innerHTML = '<span>📵</span> <strong>Mode hors-ligne</strong> — données affichées depuis le cache local';
+      document.querySelector('.secbar').insertAdjacentElement('afterend', div);
+    }
+  } else {
+    document.getElementById('offlineMsg')?.remove();
+  }
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+</script>
+</body>
+</html>

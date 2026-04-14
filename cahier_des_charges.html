@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cahier des charges — État des Eaux en Extérieur</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#2563eb; --blue-light:#eff6ff; --blue-bd:#bfdbfe;
+  --green:#1a9651; --green-light:#e8f5ee;
+  --orange:#c47a00; --orange-light:#fff4e0;
+  --red:#c0392b; --red-light:#fdecea;
+  --text:#1a2332; --muted:#6b7a8d; --border:#e2e6ea;
+  --bg:#f4f6f8; --surface:#fff;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.7}
+
+/* ── COVER ── */
+.cover{background:linear-gradient(135deg,#1a2e5a 0%,var(--blue) 100%);color:#fff;padding:64px 48px 48px;position:relative;overflow:hidden}
+.cover::after{content:'';position:absolute;right:-60px;bottom:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06)}
+.cover-label{font-size:.72rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;opacity:.7;margin-bottom:10px}
+.cover-title{font-size:2rem;font-weight:800;line-height:1.2;margin-bottom:6px}
+.cover-subtitle{font-size:1rem;opacity:.8;margin-bottom:32px}
+.cover-meta{display:flex;gap:24px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.2);padding-top:20px;font-size:.8rem;opacity:.8}
+.cover-meta span strong{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:2px}
+
+/* ── LAYOUT ── */
+.container{max-width:860px;margin:0 auto;padding:48px 32px}
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:40px}
+.toc-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:14px}
+.toc ol{list-style:decimal;padding-left:18px;display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
+.toc li{font-size:.82rem;color:var(--blue);padding:2px 0}
+.toc a{color:var(--blue);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+
+/* ── SECTIONS ── */
+.section{margin-bottom:48px}
+h2{font-size:1.1rem;font-weight:800;color:var(--text);border-left:4px solid var(--blue);padding-left:12px;margin-bottom:20px;line-height:1.3}
+h3{font-size:.9rem;font-weight:700;color:var(--text);margin:20px 0 10px}
+p{font-size:.86rem;color:var(--text);margin-bottom:10px}
+ul,ol{font-size:.86rem;padding-left:20px;margin-bottom:10px;color:var(--text)}
+li{padding:2px 0}
+
+/* ── BOXES ── */
+.box{border-radius:10px;padding:16px 20px;margin-bottom:14px}
+.box-blue{background:var(--blue-light);border:1px solid var(--blue-bd)}
+.box-green{background:var(--green-light);border:1px solid #a8d5b7}
+.box-orange{background:var(--orange-light);border:1px solid #f0c060}
+.box-red{background:var(--red-light);border:1px solid #f1a099}
+.box-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.box-blue .box-label{color:var(--blue)}
+.box-green .box-label{color:var(--green)}
+.box-orange .box-label{color:var(--orange)}
+.box-red .box-label{color:var(--red)}
+
+/* ── TABLE ── */
+table{width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:16px}
+th{background:var(--bg);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:2px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:700}
+.badge-must{background:#fdecea;color:#c0392b}
+.badge-should{background:#fff4e0;color:#c47a00}
+.badge-could{background:var(--blue-light);color:var(--blue)}
+.badge-v1{background:#e8f5ee;color:#1a9651}
+.badge-v2{background:var(--blue-light);color:var(--blue)}
+.badge-v3{background:#f8fafc;color:#6b7a8d}
+
+/* ── ARCH DIAGRAM ── */
+.arch{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;font-size:.8rem}
+.arch-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap}
+.arch-box{background:var(--blue-light);border:1px solid var(--blue-bd);color:var(--blue);padding:6px 12px;border-radius:8px;font-weight:600;font-size:.75rem;white-space:nowrap}
+.arch-box.green{background:var(--green-light);border-color:#a8d5b7;color:var(--green)}
+.arch-box.orange{background:var(--orange-light);border-color:#f0c060;color:var(--orange)}
+.arch-box.gray{background:var(--bg);border-color:var(--border);color:var(--muted)}
+.arch-arrow{color:var(--muted);font-size:1rem}
+.arch-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+
+/* ── TIMELINE ── */
+.timeline{position:relative;padding-left:28px;margin-bottom:20px}
+.timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:20px}
+.tl-dot{position:absolute;left:-24px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--blue);border:2px solid #fff;box-shadow:0 0 0 2px var(--blue-bd)}
+.tl-dot.green{background:var(--green)}
+.tl-dot.orange{background:var(--orange)}
+.tl-version{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:3px}
+.tl-title{font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:5px}
+.tl-list{font-size:.81rem;color:var(--muted);padding-left:14px}
+.tl-list li{padding:1px 0}
+
+/* ── PRINT ── */
+@media print{
+  .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .container{padding:24px 0}
+}
+@media(max-width:600px){
+  .cover{padding:40px 24px 32px}
+  .cover-title{font-size:1.4rem}
+  .container{padding:24px 16px}
+  .toc ol{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ── COVER ──────────────────────────────────────────────────── -->
+<div class="cover">
+  <div class="cover-label">Cahier des charges — v1.0</div>
+  <div class="cover-title">État des Eaux en Extérieur</div>
+  <div class="cover-subtitle">Application de surveillance de la stabilité des eaux extérieures</div>
+  <div class="cover-meta">
+    <span><strong>Moteur</strong>MTDC v3.3 (algorithme MTDC-Eau)</span>
+    <span><strong>Type</strong>Application Web Progressive (PWA)</span>
+    <span><strong>Licence données</strong>Licence Ouverte 2.0 — Hub'Eau / OFB</span>
+    <span><strong>Date</strong>Avril 2026</span>
+    <span><strong>Statut</strong>Version 1.0 — démo fonctionnelle</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ── SOMMAIRE ─────────────────────────────────────────────── -->
+<div class="toc">
+  <div class="toc-title">Sommaire</div>
+  <ol>
+    <li><a href="#contexte">Contexte et objectifs</a></li>
+    <li><a href="#cible">Public cible</a></li>
+    <li><a href="#perimetre">Périmètre fonctionnel</a></li>
+    <li><a href="#ux">Exigences UX terrain</a></li>
+    <li><a href="#architecture">Architecture technique</a></li>
+    <li><a href="#pwa">Exigences PWA</a></li>
+    <li><a href="#donnees">Données et API</a></li>
+    <li><a href="#mtdc">Moteur MTDC — intégration</a></li>
+    <li><a href="#rgpd">RGPD et sécurité</a></li>
+    <li><a href="#roadmap">Roadmap par version</a></li>
+    <li><a href="#livrables">Livrables attendus</a></li>
+    <li><a href="#references">Références open source</a></li>
+  </ol>
+</div>
+
+<!-- 1 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="contexte">
+<h2>1. Contexte et objectifs</h2>
+<p>Les gestionnaires d'eaux extérieures (baignade, pêche, irrigation, écologie) manquent d'un outil simple, terrain, pour répondre à une question fondamentale : <strong>l'eau est-elle dans le même état qu'avant ?</strong></p>
+<p>Les outils existants (portails DCE, NAÏADES, Hub'Eau) sont conçus pour des techniciens OFB et ne permettent pas une lecture rapide de l'état courant par un non-spécialiste sur le terrain.</p>
+
+<div class="box box-blue">
+  <div class="box-label">Proposition de valeur</div>
+  Transformer les données physico-chimiques brutes de l'Agence Française pour la Biodiversité en un signal unique — <strong>Stable / Vigilance / Alerte</strong> — accessible hors-ligne sur téléphone, sans formation spécifique.
+</div>
+
+<h3>Objectifs mesurables</h3>
+<ul>
+  <li>Détection précoce de dérive avant franchissement des seuils DCE réglementaires</li>
+  <li>Zéro jargon algorithmique visible dans la vue principale</li>
+  <li>Fonctionnement intégral hors-ligne (zones sans réseau)</li>
+  <li>Couverture nationale France métropolitaine — 5 types hydrologiques</li>
+  <li>Taux de faux positifs &lt; 2 % sur séries rivières/fleuves (validé MTDC v3.3)</li>
+</ul>
+</div>
+
+<!-- 2 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="cible">
+<h2>2. Public cible</h2>
+<table>
+  <tr><th>Profil</th><th>Contexte d'usage</th><th>Besoin principal</th></tr>
+  <tr><td>Gestionnaire de baignade (mairie, SIVOM)</td><td>Contrôle hebdomadaire avant ouverture</td><td>Alerte précoce bloom algal, turbidité</td></tr>
+  <tr><td>Agent syndicat de rivière</td><td>Tournée mensuelle de terrain</td><td>Vue cartographique multi-stations, tendances</td></tr>
+  <tr><td>Pêcheur / garde-pêche fédération</td><td>Surveillance sanitaire secteurs pêche</td><td>Température, oxygène — impact salmonidés</td></tr>
+  <tr><td>Agriculteur avec prise d'eau</td><td>Décision d'irrigation en saison</td><td>Nitrates, conductivité — compatibilité cultures</td></tr>
+  <tr><td>Animateur base nautique / camping</td><td>Information clientèle / couverture juridique</td><td>Statut simple, horodaté, exportable</td></tr>
+  <tr><td>Chargé de mission écologie</td><td>Suivi patrimonial à long terme</td><td>Historique multi-années, export données</td></tr>
+</table>
+
+<div class="box box-orange">
+  <div class="box-label">Non-cible explicite</div>
+  Les techniciens OFB, ingénieurs des Agences de l'eau, bureaux d'étude — ces profils disposent déjà de NAÏADES, Hydroportail et des rapports DCE officiels. MTDC est un complément, non un substitut aux analyses réglementaires.
+</div>
+</div>
+
+<!-- 3 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="perimetre">
+<h2>3. Périmètre fonctionnel</h2>
+
+<h3>Must have — V1</h3>
+<table>
+  <tr><th>Fonctionnalité</th><th>Priorité</th><th>Version</th></tr>
+  <tr><td>Affichage statut Stable / Vigilance / Alerte par station</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+  <tr><td>Filtrage par usage (baignade, pêche, irrigation, écologie)</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+  <tr><td>Vue carte interactive (Leaflet/OSM)</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+  <tr><td>Panneau détail : conseil terrain + mesures + historique</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+  <tr><td>Fonctionnement hors-ligne (PWA cache-first)</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+  <tr><td>Installable sur écran d'accueil iPhone/Android</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+  <tr><td>Recherche par nom de station ou cours d'eau</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+  <tr><td>Visualisation signal 90 jours + indice MTDC (Φ̃)</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+  <tr><td>Bandeau hors-ligne (indicateur connexion)</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+  <tr><td>Données locales (build_database.py — 4 sources)</td><td><span class="badge badge-must">MUST</span></td><td><span class="badge badge-v1">V1</span></td></tr>
+
+  <tr><td>Export rapport PDF par station</td><td><span class="badge badge-should">SHOULD</span></td><td><span class="badge badge-v2">V2</span></td></tr>
+  <tr><td>Notifications push (alerte nouvelle dérive)</td><td><span class="badge badge-should">SHOULD</span></td><td><span class="badge badge-v2">V2</span></td></tr>
+  <tr><td>Ajout de mesures terrain (formulaire offline)</td><td><span class="badge badge-should">SHOULD</span></td><td><span class="badge badge-v2">V2</span></td></tr>
+  <tr><td>Partage de lien station (deep link)</td><td><span class="badge badge-should">SHOULD</span></td><td><span class="badge badge-v2">V2</span></td></tr>
+
+  <tr><td>Mode multi-utilisateurs / organisation</td><td><span class="badge badge-could">COULD</span></td><td><span class="badge badge-v3">V3</span></td></tr>
+  <tr><td>App native Android / iOS (Capacitor)</td><td><span class="badge badge-could">COULD</span></td><td><span class="badge badge-v3">V3</span></td></tr>
+  <tr><td>Connecteurs capteurs IoT temps-réel</td><td><span class="badge badge-could">COULD</span></td><td><span class="badge badge-v3">V3</span></td></tr>
+</table>
+</div>
+
+<!-- 4 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="ux">
+<h2>4. Exigences UX terrain</h2>
+
+<div class="box box-green">
+  <div class="box-label">Principe directeur</div>
+  L'application répond à une seule question : <em>"Est-ce que l'eau est dans le même état qu'avant ?"</em>
+  Aucun paramètre algorithmique (Φ̃, phi1, G_min…) ne doit apparaître dans la vue principale.
+</div>
+
+<h3>Contraintes d'usage terrain</h3>
+<ul>
+  <li><strong>Lumière directe</strong> — contraste minimum 4.5:1 (WCAG AA), texte &gt; 14px</li>
+  <li><strong>Gants / grands doigts</strong> — zones cliquables minimum 44×44 px (Apple HIG)</li>
+  <li><strong>3G lent ou absent</strong> — chargement complet &lt; 3s en 3G, fonctionnel offline</li>
+  <li><strong>Batterie faible</strong> — pas d'animations continues sauf alertes critiques</li>
+  <li><strong>Non-technicien</strong> — zéro sigle, acronyme ou code non expliqué en vue principale</li>
+</ul>
+
+<h3>Structure de navigation</h3>
+<ul>
+  <li><strong>Topbar</strong> : nom appli / recherche / date / compteurs statut</li>
+  <li><strong>Barre secondaire</strong> : filtres usage + toggle Liste/Carte</li>
+  <li><strong>Vue liste</strong> : cartes groupées Alertes → Vigilance → Stables, avec sparkline 30j</li>
+  <li><strong>Vue carte</strong> : markers colorés OSM, popup avec bouton détail</li>
+  <li><strong>Panel détail</strong> (3 onglets) : Terrain · Graphiques · Technique</li>
+</ul>
+</div>
+
+<!-- 5 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="architecture">
+<h2>5. Architecture technique</h2>
+
+<div class="arch">
+  <div class="arch-label">Stack front — V1 (zéro dépendance build)</div>
+  <div class="arch-row">
+    <div class="arch-box">HTML5 + CSS3 + ES2020</div>
+    <div class="arch-arrow">+</div>
+    <div class="arch-box">Chart.js 4.4 (CDN)</div>
+    <div class="arch-arrow">+</div>
+    <div class="arch-box">Leaflet 1.9 (CDN)</div>
+    <div class="arch-arrow">+</div>
+    <div class="arch-box green">Service Worker (sw.js)</div>
+    <div class="arch-arrow">+</div>
+    <div class="arch-box green">manifest.json</div>
+  </div>
+  <div class="arch-label" style="margin-top:14px">Couche données — banque locale</div>
+  <div class="arch-row">
+    <div class="arch-box orange">build_database.py</div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box orange">data/ (JSONL local)</div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box orange">local_loader.py</div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box orange">MTDC run_auto()</div>
+  </div>
+  <div class="arch-label" style="margin-top:14px">Sources données (4 sources — Licence Ouverte 2.0)</div>
+  <div class="arch-row">
+    <div class="arch-box gray">Hub'Eau qualité rivières</div>
+    <div class="arch-box gray">Hub'Eau hydrométrie</div>
+    <div class="arch-box gray">SANDRE référentiel</div>
+    <div class="arch-box gray">BDCarthage</div>
+  </div>
+</div>
+
+<h3>Stratégie de cache service worker</h3>
+<table>
+  <tr><th>Type de ressource</th><th>Stratégie</th><th>Raison</th></tr>
+  <tr><td>Shell HTML/CSS/JS/icons</td><td><strong>Cache-first</strong></td><td>Doit fonctionner offline sans réseau — pattern ODK</td></tr>
+  <tr><td>Tuiles cartographiques OSM</td><td><strong>Stale-while-revalidate</strong></td><td>Affichage immédiat + actualisation background</td></tr>
+  <tr><td>API Hub'Eau (données live)</td><td><strong>Network-first + fallback</strong> (5s timeout)</td><td>Données fraîches si connecté, cache sinon</td></tr>
+  <tr><td>Bibliothèques CDN</td><td><strong>Stale-while-revalidate</strong></td><td>Versionnées — rarement changent</td></tr>
+  <tr><td>Remontées terrain (V2)</td><td><strong>Background Sync queue</strong></td><td>Pattern ODK — jamais perdu, confirmé serveur</td></tr>
+</table>
+
+<h3>Structure des fichiers</h3>
+<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:.78rem;overflow-x:auto;line-height:1.8">
+MTDC-Eau-OpenSource/
+├── surveillance_eaux_v4.html   ← Shell PWA (app complète)
+├── manifest.json               ← Métadonnées PWA (nom, icônes, couleurs)
+├── sw.js                       ← Service Worker (cache + sync)
+├── icons/
+│   ├── icon-192.png            ← Icône Android / PWA
+│   ├── icon-512.png            ← Icône splash screen
+│   └── favicon-32.png          ← Onglet navigateur
+├── water/
+│   ├── mtdc_core.py            ← Moteur MTDC v3.3
+│   ├── topology.py             ← Classification hydrologique
+│   ├── local_loader.py         ← Chargeur banque locale
+│   └── parameters.py           ← Paramètres 5 types
+├── build_database.py           ← Construction banque locale
+└── data/                       ← Banque données locale (générée)
+    ├── stations/
+    ├── mesures/
+    ├── hydrometrie/
+    ├── referentiel/
+    └── MANIFEST.json
+</pre>
+</div>
+
+<!-- 6 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="pwa">
+<h2>6. Exigences PWA</h2>
+
+<h3>Critères d'installation (Lighthouse PWA)</h3>
+<ul>
+  <li>✅ manifest.json valide avec icônes 192×192 et 512×512</li>
+  <li>✅ Service Worker enregistré sur start_url</li>
+  <li>✅ HTTPS (ou localhost pour tests)</li>
+  <li>✅ theme-color défini (#2563eb)</li>
+  <li>✅ display: standalone (plein écran sans barre navigateur)</li>
+  <li>✅ apple-touch-icon pour iOS (Safari &lt; 16.4)</li>
+</ul>
+
+<h3>Comportement offline attendu</h3>
+<ul>
+  <li>Application démarre et s'affiche intégralement sans réseau</li>
+  <li>Données de la dernière synchronisation visibles</li>
+  <li>Bandeau "Mode hors-ligne" affiché clairement</li>
+  <li>Carte : tuiles déjà visitées disponibles, zones non-visitées = vide gris</li>
+  <li>Aucun crash, aucun écran blanc en l'absence de réseau</li>
+</ul>
+
+<h3>Compatibilité navigateurs</h3>
+<table>
+  <tr><th>Plateforme</th><th>Navigateur</th><th>Support PWA</th></tr>
+  <tr><td>Android</td><td>Chrome 90+</td><td>✅ Complet (install + push + background sync)</td></tr>
+  <tr><td>Android</td><td>Firefox 90+</td><td>✅ Install + offline (pas push)</td></tr>
+  <tr><td>iOS 16.4+</td><td>Safari</td><td>✅ Install + offline (push depuis iOS 16.4)</td></tr>
+  <tr><td>iOS &lt; 16.4</td><td>Safari</td><td>⚠️ Offline OK, pas de push notifications</td></tr>
+  <tr><td>Desktop</td><td>Chrome / Edge</td><td>✅ Complet</td></tr>
+  <tr><td>Desktop</td><td>Firefox</td><td>⚠️ Offline OK, install limité</td></tr>
+</table>
+</div>
+
+<!-- 7 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="donnees">
+<h2>7. Données et API</h2>
+
+<h3>Sources primaires (banque locale)</h3>
+<table>
+  <tr><th>Source</th><th>Contenu</th><th>Fréquence mise à jour</th><th>Licence</th></tr>
+  <tr><td>Hub'Eau qualité rivières v2</td><td>Mesures physico-chimiques (10 paramètres)</td><td>Hebdomadaire</td><td>Licence Ouverte 2.0</td></tr>
+  <tr><td>Hub'Eau hydrométrie v2</td><td>Débits caractéristiques (module m³/s)</td><td>Mensuelle</td><td>Licence Ouverte 2.0</td></tr>
+  <tr><td>SANDRE référentiel</td><td>Stations, cours d'eau, bassins versants</td><td>Semestrielle</td><td>Licence Ouverte 2.0</td></tr>
+  <tr><td>BDCarthage</td><td>Réseau hydrographique GeoJSON</td><td>Annuelle</td><td>Licence Ouverte 2.0</td></tr>
+</table>
+
+<h3>Paramètres physico-chimiques surveillés</h3>
+<ul>
+  <li>pH (1302) · Température (1301) · Conductivité (1303)</li>
+  <li>Turbidité (1295) · Oxygène dissous (1311) · MES (1305)</li>
+  <li>Nitrates (1340) · Phosphore (1350) · Ammonium (1335) · DBO5 (1313)</li>
+</ul>
+
+<div class="box box-blue">
+  <div class="box-label">Endpoint CSV bulk (Hub'Eau v2 — optimisation build_database.py)</div>
+  L'endpoint <code>/v2/qualite_rivieres/analyse_pc.csv</code> permet le téléchargement en masse sans pagination JSON (limite 20 000 enregistrements par requête). Le script utilise des tranches de 5 ans pour rester sous cette limite. Filtre <code>code_qualification=1;2</code> pour n'inclure que les données validées (bon + incertain).
+</div>
+</div>
+
+<!-- 8 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="mtdc">
+<h2>8. Moteur MTDC — intégration</h2>
+
+<h3>Algorithme MTDC v3.3</h3>
+<p>MTDC (Méthode de Traçage des Dérives de Composition) détecte une dérive de l'état physico-chimique d'un cours d'eau avant le franchissement des seuils réglementaires DCE.</p>
+
+<table>
+  <tr><th>Symbole</th><th>Définition</th><th>Valeur type rivière</th></tr>
+  <tr><td>Rs</td><td>Médiane glissante (baseline saisonnière)</td><td>n_base = 24 mois</td></tr>
+  <tr><td>Φ = X/Rs</td><td>Ratio signal/baseline</td><td>—</td></tr>
+  <tr><td>Φ̃</td><td>Φ lissé (EWMA)</td><td>—</td></tr>
+  <tr><td>G = dΦ̃/dt</td><td>Vitesse de dérive</td><td>—</td></tr>
+  <tr><td>G_min</td><td>Seuil adaptatif (p75 zone contrainte)</td><td>~0.074</td></tr>
+  <tr><td>phi1</td><td>Seuil d'amplitude auto-calibré</td><td>~1.3465</td></tr>
+  <tr><td>T</td><td>Persistance minimale avant alarme</td><td>3 périodes</td></tr>
+</table>
+
+<p>L'alarme est déclenchée quand <strong>Φ̃ &gt; phi1 ET G &gt; G_min</strong> pendant T périodes consécutives.</p>
+
+<h3>Classification hydrologique (5 types)</h3>
+<table>
+  <tr><th>Type</th><th>Module m³/s</th><th>n_base</th><th>T alarme</th></tr>
+  <tr><td>Ruisseau</td><td>&lt; 1</td><td>12 mois</td><td>2 périodes</td></tr>
+  <tr><td>Rivière</td><td>1–100</td><td>24 mois</td><td>3 périodes</td></tr>
+  <tr><td>Fleuve</td><td>&gt; 100</td><td>36 mois</td><td>3 périodes</td></tr>
+  <tr><td>Lac / retenue</td><td>— (volume)</td><td>6 ans</td><td>3 périodes</td></tr>
+</table>
+
+<div class="box box-green">
+  <div class="box-label">Performance MTDC v3.3 (500 simulations)</div>
+  Taux de faux positifs : <strong>0 % rivière/fleuve</strong>, <strong>1.2 % ruisseau</strong>.
+  Temps de calcul : 0.64 ms pour 288 points (1 560 analyses/sec).
+  G_min adaptatif (p75 zone contrainte structurante) — amélioration clé vs v3.2.
+</div>
+</div>
+
+<!-- 9 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="rgpd">
+<h2>9. RGPD et sécurité</h2>
+
+<h3>Données personnelles</h3>
+<p>Dans sa version V1, l'application ne collecte <strong>aucune donnée personnelle</strong>. Elle est en lecture seule, sans compte utilisateur, sans tracking, sans cookies tiers.</p>
+
+<h3>Données environnementales</h3>
+<ul>
+  <li>Toutes les données sont issues de sources publiques sous Licence Ouverte 2.0 (Etalab)</li>
+  <li>Attribution obligatoire : <em>"Données Hub'Eau / NAÏADES / OFB / Agences de l'eau"</em></li>
+  <li>Les données ne sont pas modifiées, seulement agrégées (médiane mensuelle)</li>
+</ul>
+
+<h3>Sécurité V2 (si saisie terrain)</h3>
+<ul>
+  <li>HTTPS obligatoire pour l'enregistrement du service worker</li>
+  <li>Données terrain stockées en IndexedDB local (pas cloud par défaut)</li>
+  <li>Sync chiffrée HTTPS si backend ajouté</li>
+  <li>Aucun accès à la géolocalisation sans consentement explicite</li>
+</ul>
+</div>
+
+<!-- 10 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="roadmap">
+<h2>10. Roadmap par version</h2>
+
+<div class="timeline">
+  <div class="tl-item">
+    <div class="tl-dot"></div>
+    <div class="tl-version">V1 — Demo fonctionnelle (état actuel)</div>
+    <div class="tl-title">PWA installable — données mockées — interface complète</div>
+    <ul class="tl-list">
+      <li>Interface terrain v4 : liste + carte + panel 3 onglets</li>
+      <li>PWA : manifest + service worker + icônes</li>
+      <li>Moteur MTDC v3.3 (Python, validé 500 simulations)</li>
+      <li>build_database.py : 4 sources Hub'Eau/SANDRE</li>
+      <li>local_loader.py : chargement offline avec fallback API</li>
+    </ul>
+  </div>
+
+  <div class="tl-item">
+    <div class="tl-dot green"></div>
+    <div class="tl-version">V1.1 — Connexion données réelles</div>
+    <div class="tl-title">Remplacement des données mock par Hub'Eau en live</div>
+    <ul class="tl-list">
+      <li>data-loader.js : appels Hub'Eau API depuis le navigateur</li>
+      <li>Calcul MTDC en Python → pré-calculé → JSON statique servi par l'app</li>
+      <li>Script de génération JSON (pipeline Python → JSON → PWA)</li>
+      <li>Validation sur un événement réel documenté (bloom Lot 2019)</li>
+    </ul>
+  </div>
+
+  <div class="tl-item">
+    <div class="tl-dot green"></div>
+    <div class="tl-version">V2 — Fonctions terrain avancées</div>
+    <div class="tl-title">Export, notifications, saisie terrain</div>
+    <ul class="tl-list">
+      <li>Export PDF par station (rapport horodaté)</li>
+      <li>Notifications push (Web Push API) — alerte nouvelle dérive</li>
+      <li>Formulaire de saisie terrain (mesures instantanées)</li>
+      <li>Background Sync : queue offline + replay quand connecté (pattern ODK)</li>
+      <li>Partage de lien station (deep link URL)</li>
+    </ul>
+  </div>
+
+  <div class="tl-item">
+    <div class="tl-dot orange"></div>
+    <div class="tl-version">V3 — Distribution large</div>
+    <div class="tl-title">App native + publication</div>
+    <ul class="tl-list">
+      <li>APK Android (Capacitor) — distribuable hors Play Store</li>
+      <li>Publication Play Store / App Store</li>
+      <li>PyPI : <code>pip install mtdc-eau</code></li>
+      <li>CI/CD GitHub Actions (tests auto + build)</li>
+      <li>Mode multi-organisation (syndicats, fédérations de pêche…)</li>
+    </ul>
+  </div>
+</div>
+</div>
+
+<!-- 11 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="livrables">
+<h2>11. Livrables attendus — V1</h2>
+<table>
+  <tr><th>Fichier</th><th>Description</th><th>Statut</th></tr>
+  <tr><td>surveillance_eaux_v4.html</td><td>Shell PWA — interface complète</td><td>✅ Livré</td></tr>
+  <tr><td>manifest.json</td><td>Métadonnées PWA</td><td>✅ Livré</td></tr>
+  <tr><td>sw.js</td><td>Service worker (cache + sync)</td><td>✅ Livré</td></tr>
+  <tr><td>icons/icon-192.png</td><td>Icône Android / install prompt</td><td>✅ Livré</td></tr>
+  <tr><td>icons/icon-512.png</td><td>Icône splash screen</td><td>✅ Livré</td></tr>
+  <tr><td>water/mtdc_core.py</td><td>Moteur MTDC v3.3</td><td>✅ Livré</td></tr>
+  <tr><td>water/topology.py</td><td>Classification hydrologique 3 niveaux</td><td>✅ Livré</td></tr>
+  <tr><td>water/local_loader.py</td><td>Chargeur banque locale + fallback API</td><td>✅ Livré</td></tr>
+  <tr><td>build_database.py</td><td>Construction banque données (CSV bulk, code_qualification)</td><td>✅ Livré</td></tr>
+  <tr><td>cahier_des_charges.html</td><td>Ce document</td><td>✅ Livré</td></tr>
+  <tr><td>mtdc_perf_report.html</td><td>Rapport de performance MTDC</td><td>✅ Livré</td></tr>
+  <tr><td>data-loader.js</td><td>Connexion Hub'Eau depuis navigateur</td><td>⏳ V1.1</td></tr>
+  <tr><td>generate_stations_json.py</td><td>Pipeline Python → JSON pour la PWA</td><td>⏳ V1.1</td></tr>
+</table>
+</div>
+
+<!-- 12 ─────────────────────────────────────────────────────────── -->
+<div class="section" id="references">
+<h2>12. Références open source</h2>
+<table>
+  <tr><th>Projet</th><th>Pattern utilisé</th><th>URL</th></tr>
+  <tr><td>ODK / KoBoToolbox</td><td>Queue offline persistante, confirmation serveur avant suppression locale</td><td>github.com/getodk</td></tr>
+  <tr><td>iNaturalist</td><td>Capture locale offline → sync asynchrone</td><td>github.com/inaturalist</td></tr>
+  <tr><td>Sensor.Community</td><td>Dashboard capteurs réseau, Svelte + PWA precache</td><td>github.com/opendata-stuttgart</td></tr>
+  <tr><td>OpenAQ</td><td>Cache-first shell + stale-while-revalidate API</td><td>github.com/openaq</td></tr>
+  <tr><td>Workbox (Google)</td><td>Stratégies de cache service worker (référence)</td><td>developer.chrome.com/workbox</td></tr>
+  <tr><td>Hub'Eau API v2</td><td>Source données — Licence Ouverte 2.0 Etalab</td><td>hubeau.eaufrance.fr</td></tr>
+</table>
+
+<div class="box box-blue" style="margin-top:20px">
+  <div class="box-label">Attribution données</div>
+  Toute publication ou distribution doit mentionner :<br>
+  <em>"Données Hub'Eau / NAÏADES / OFB / Agences de l'eau — Licence Ouverte 2.0 (Etalab)"</em>
+</div>
+</div>
+
+<div style="text-align:center;margin-top:40px;padding:24px;border-top:1px solid var(--border);font-size:.75rem;color:var(--muted)">
+  État des Eaux en Extérieur — Cahier des charges v1.0 — Avril 2026<br>
+  Moteur MTDC : open-source — Données : Licence Ouverte 2.0 Etalab
+</div>
+
+</div>
+</body>
+</html>
