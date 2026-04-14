@@ -850,7 +850,35 @@ const now = new Date();
 document.getElementById('topbarDate').textContent =
   now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-renderMain();
+// ─────────────────────────────────────────────────────────────────────────────
+// CHARGEMENT DONNÉES RÉELLES (stations.json généré par generate_stations_json.py)
+// Fallback sur les données démo si le fichier n'est pas disponible.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function initApp() {
+  try {
+    const resp = await fetch('./stations.json');
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && data.length) {
+        STATIONS.length = 0;
+        data.forEach(s => STATIONS.push(s));
+        // Générer les datasets synthétiques pour les stations sans données sparkline
+        STATIONS.forEach(s => {
+          if (!s.datasets) {
+            s.datasets = buildDataset(TYPES_MAP[s.id] || s.status || 'stable', 90);
+          }
+        });
+        console.log(`[données] ${STATIONS.length} stations réelles chargées depuis stations.json`);
+      }
+    }
+  } catch(e) {
+    console.log('[données] stations.json non disponible — données démo affichées');
+  }
+  renderMain();
+}
+
+initApp();
 
 // ── PWA — Service Worker ─────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
