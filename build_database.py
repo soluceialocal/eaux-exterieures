@@ -121,7 +121,7 @@ def _build_url(url: str, params: dict) -> str:
     return url
 
 
-def _get(url: str, params: dict = None, retries: int = 3, timeout: int = 30) -> dict:
+def _get(url: str, params: dict = None, retries: int = 3, timeout: int = 120) -> dict:
     """Requête JSON Hub'Eau avec gestion des erreurs et rate-limit."""
     full_url = _build_url(url, params)
     for attempt in range(retries):
