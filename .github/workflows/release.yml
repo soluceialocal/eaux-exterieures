@@ -1,0 +1,30 @@
+# .github/workflows/release.yml
+# Génère automatiquement le bundle HTML auto-contenu à chaque Release GitHub
+# Le fichier .html est attaché en asset téléchargeable sur la Release
+
+name: Build Release Bundle
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build bundle
+        run: python bundle.py --version ${{ github.ref_name }}
+
+      - name: Upload bundle to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/eaux-exterieures-${{ github.ref_name }}.html
